@@ -183,6 +183,7 @@ class Configuration
                                     ->scalarNode('update')->defaultTrue()->end()
                                     ->scalarNode('delete')->defaultTrue()->end()
                                     ->scalarNode('service')->end()
+                                    ->variableNode('is_indexable_callback')->defaultNull()->end()
                                 ->end()
                             ->end()
                             ->arrayNode('finder')

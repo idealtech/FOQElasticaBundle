@@ -22,7 +22,12 @@ class Listener extends AbstractListener implements EventSubscriber
         $document = $eventArgs->getDocument();
 
         if ($document instanceof $this->objectClass) {
-            $this->objectPersister->replaceOne($document);
+            if ($this->isObjectIndexable($document)) {
+                $this->objectPersister->replaceOne($document);
+            } else {
+                $this->scheduleForRemoval($document, $eventArgs->getDocumentManager());
+                $this->removeIfScheduled($document);
+            }
         }
     }
 

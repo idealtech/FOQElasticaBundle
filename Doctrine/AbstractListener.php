@@ -22,6 +22,13 @@ abstract class AbstractListener
     protected $objectClass;
 
     /**
+     * Callback for determining if an object should be indexed
+     *
+     * @var mixed
+     */
+    protected $isIndexableCallback;
+
+    /**
      * List of subscribed events
      *
      * @var array
@@ -49,6 +56,56 @@ abstract class AbstractListener
     public function getSubscribedEvents()
     {
         return $this->events;
+    }
+
+    /**
+     * Set the callback for determining object index eligibility.
+     *
+     * If callback is a string, it must be public method on the object class
+     * that expects no arguments and returns a boolean. Otherwise, the callback
+     * should expect the object for consideration as its only argument and
+     * return a boolean.
+     *
+     * @param callback $callback
+     * @throw RuntimeException if the callback is not callable
+     */
+    public function setIsIndexableCallback($callback)
+    {
+        if (is_string($callback)) {
+            if (!is_callable(array($this->objectClass, $callback))) {
+                throw new \RuntimeException(sprintf('Indexable callback %s::%s() is not callable.', $this->objectClass, $callback));
+            }
+        } elseif (!is_callable($callback)) {
+            if (is_array($callback)) {
+                list($class, $method) = $callback + array(null, null);
+                if (is_object($class)) {
+                    $class = get_class($class);
+                }
+                if ($class && $method) {
+                    throw new \RuntimeException(sprintf('Indexable callback %s::%s() is not callable.', $class, $method));
+                }
+            }
+            throw new \RuntimeException('Indexable callback is not callable.');
+        }
+
+        $this->isIndexableCallback = $callback;
+    }
+
+    /**
+     * Return whether the object is indexable with respect to the callback.
+     *
+     * @param object $object
+     * @return boolean
+     */
+    protected function isObjectIndexable($object)
+    {
+        if (!$this->isIndexableCallback) {
+            return true;
+        }
+
+        return is_string($this->isIndexableCallback)
+            ? call_user_func(array($object, $this->isIndexableCallback))
+            : call_user_func($this->isIndexableCallback, $object);
     }
 
     protected function scheduleForRemoval($object, $objectManager)
