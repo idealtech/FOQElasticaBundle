@@ -366,7 +366,16 @@ class FOQElasticaExtension extends Extension
     protected function loadTypeFinder(array $typeConfig, ContainerBuilder $container, $elasticaToModelId, $typeDef, $indexName, $typeName)
     {
         if (isset($typeConfig['finder']['service'])) {
-            return $typeConfig['finder']['service'];
+            $finderId = $typeConfig['finder']['service'];
+            $managerId  = sprintf('foq_elastica.manager.%s', $typeConfig['driver']);
+            $managerDef = $container->getDefinition($managerId);
+            $arguments = array( $typeConfig['model'], new Reference($finderId));
+            if (isset($typeConfig['repository'])) {
+                $arguments[] = $typeConfig['repository'];
+            }
+            $managerDef->addMethodCall('addEntity', $arguments);
+
+            return $finderId;
         }
         $abstractFinderId = 'foq_elastica.finder.prototype';
         $finderId = sprintf('foq_elastica.finder.%s.%s', $indexName, $typeName);
